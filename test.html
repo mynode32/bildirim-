@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bidlirim Test Mağazası</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .product-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+        }
+        .product-image {
+            width: 100%;
+            height: 250px;
+            border-radius: 12px;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+        .product-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+        }
+        .product-price {
+            font-size: 20px;
+            color: #8A2BE2;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #10b981;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0d9668;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #8A2BE2;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7123ba;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="product-card">
+        <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80&fit=crop" alt="Premium Spor Ayakkabı" class="product-image">
+        <h2 class="product-title">Nike Air Max 270</h2>
+        <div class="product-price">3.299 TL</div>
+        
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="trackAddToCart(this)">Sepete Ekle</button>
+            <button class="btn btn-secondary" onclick="trackPurchase(this)">Hemen Satın Al</button>
+        </div>
+        <p style="font-size: 13px; color: #888; margin-top: 20px;">
+            Butonlara bastığınızda Event API tetiklenir ve <br> "Bidlirim" aracılığıyla diğer ziyaretçilere anlık gösterilir.
+        </p>
+    </div>
+
+    <!-- Bidlirim Widget Entegrasyonu -->
+    <script src="http://localhost:3001/widget.js" data-store="store-z9bhw3sj2" async></script>
+
+    <script>
+        function trackAddToCart(btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Ekleniyor...";
+            btn.style.opacity = "0.8";
+            
+            if(window.Bidlirim && window.Bidlirim.track) {
+                window.Bidlirim.track('cart', {
+                    productName: 'Nike Air Max 270',
+                    imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=150&q=80&fit=crop',
+                    location: 'İstanbul' 
+                });
+                
+                setTimeout(() => {
+                    btn.innerText = "✓ Eklendi";
+                    btn.style.background = "#059669";
+                    btn.style.opacity = "1";
+                    
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = "#10b981";
+                    }, 2000);
+                }, 500);
+            }
+        }
+
+        function trackPurchase(btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "İşleniyor...";
+            btn.style.opacity = "0.8";
+
+            if(window.Bidlirim && window.Bidlirim.track) {
+                window.Bidlirim.track('purchase', {
+                    productName: 'Nike Air Max 270',
+                    imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=150&q=80&fit=crop',
+                    location: 'İzmir'
+                });
+                
+                setTimeout(() => {
+                    btn.innerText = "✓ Satın Alındı";
+                    btn.style.background = "#5b21b6";
+                    btn.style.opacity = "1";
+                    
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = "#8A2BE2";
+                    }, 2000);
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html>
