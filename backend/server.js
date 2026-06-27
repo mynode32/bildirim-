@@ -92,12 +92,22 @@ app.get('/api/settings/:storeId', async (req, res) => {
 
 app.put('/api/settings/:storeId', async (req, res) => {
     const { storeId } = req.params;
-    const { theme, position, delay, displayTime, primaryColor, hideOnMobile, hideOnUrls, soundEnabled } = req.body;
+    const { theme, position, delay, displayTime, primaryColor, hideOnMobile, hideOnUrls, soundEnabled, templateText, maskName, quietHoursEnabled, quietHoursStart, quietHoursEnd, hideImage, showVerification } = req.body;
     
     try {
         const result = await db.query(
-            `UPDATE settings SET theme = $1, position = $2, delay = $3, "displayTime" = $4, "primaryColor" = $5, "hideOnMobile" = $6, "hideOnUrls" = $7, "soundEnabled" = $8 WHERE "storeId" = $9`,
-            [theme, position, delay, displayTime, primaryColor, hideOnMobile ? true : false, hideOnUrls || '', soundEnabled === false ? false : true, storeId]
+            `UPDATE settings SET theme = $1, position = $2, delay = $3, "displayTime" = $4, "primaryColor" = $5, "hideOnMobile" = $6, "hideOnUrls" = $7, "soundEnabled" = $8, "templateText" = $9, "maskName" = $10, "quietHoursEnabled" = $11, "quietHoursStart" = $12, "quietHoursEnd" = $13, "hideImage" = $14, "showVerification" = $15 WHERE "storeId" = $16`,
+            [
+                theme, position, delay, displayTime, primaryColor, hideOnMobile ? true : false, hideOnUrls || '', soundEnabled === false ? false : true,
+                templateText || '{customerName} ({cityFrom}) az önce {productName} satın aldı.',
+                maskName ? true : false,
+                quietHoursEnabled ? true : false,
+                quietHoursStart || '22:00',
+                quietHoursEnd || '08:00',
+                hideImage ? true : false,
+                showVerification === false ? false : true,
+                storeId
+            ]
         );
         res.json({ success: true, changes: result.rowCount });
     } catch (e) {
@@ -231,10 +241,27 @@ app.post('/api/webhooks/order/:storeId', async (req, res) => {
     
     let productUrl = b.product_url || b.line_items?.[0]?.url || '';
 
-    const title = `${customerName} (${resolvedCity})`;
-    const message = `Az önce "${productName}" satın aldı.`;
+    let title = `${customerName} (${resolvedCity})`;
+    let message = `Az önce "${productName}" satın aldı.`;
 
     try {
+        const settingsRes = await db.query('SELECT "templateText", "maskName" FROM settings WHERE "storeId" = $1', [storeId]);
+        if (settingsRes.rows.length > 0) {
+            const s = settingsRes.rows[0];
+            if (s.maskName && customerName.length > 1) {
+                customerName = customerName.charAt(0) + '***';
+            }
+            if (s.templateText) {
+                // If template text is provided, use it as title and clear message
+                title = s.templateText
+                    .replace(/{customerName}/g, customerName)
+                    .replace(/{cityFrom}/g, resolvedCity)
+                    .replace(/{productName}/g, productName)
+                    .replace(/{timeText}/g, 'az önce');
+                message = '';
+            }
+        }
+
         const result = await db.query(
             `INSERT INTO notifications ("storeId", type, title, message, "imageUrl", "productUrl", "isActive") VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id`,
             [storeId, 'sales', title, message, productImage, productUrl]
@@ -263,15 +290,29 @@ app.post('/api/widget/event/:storeId', async (req, res) => {
     let geo = geoip.lookup(clientIp);
     let location = (geo && geo.city) ? geo.city : (req.body.location || 'Türkiye');
 
-    const type = event === 'cart' ? 'cart' : 'sales';
-    const title = event === 'cart' ? 'Sepete Eklendi' : `Biri (${location})`;
-    const message = event === 'cart' 
+    let title = event === 'cart' ? 'Sepete Eklendi' : `Biri (${location})`;
+    let message = event === 'cart' 
         ? `Biri (${location}) az önce "${productName || 'bir ürün'}" sepetine ekledi.` 
         : `Az önce "${productName || 'bir ürün'}" satın aldı.`;
 
     const finalImg = imageUrl || 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=150&q=80&fit=crop';
 
     try {
+        const settingsRes = await db.query('SELECT "templateText", "maskName" FROM settings WHERE "storeId" = $1', [storeId]);
+        if (settingsRes.rows.length > 0 && event === 'purchase') {
+            const s = settingsRes.rows[0];
+            let cName = 'Bir Müşteri';
+            if (s.maskName) cName = 'B***';
+            if (s.templateText) {
+                title = s.templateText
+                    .replace(/{customerName}/g, cName)
+                    .replace(/{cityFrom}/g, location)
+                    .replace(/{productName}/g, productName || 'bir ürün')
+                    .replace(/{timeText}/g, 'az önce');
+                message = '';
+            }
+        }
+
         const result = await db.query(
             `INSERT INTO notifications ("storeId", type, title, message, "imageUrl", "productUrl", "isActive") VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id`,
             [storeId, type, title, message, finalImg, productUrl || '']

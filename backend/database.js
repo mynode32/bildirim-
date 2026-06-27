@@ -28,8 +28,30 @@ async function initDb() {
             "hideOnMobile" BOOLEAN DEFAULT false,
             "hideOnUrls" TEXT DEFAULT '',
             "soundEnabled" BOOLEAN DEFAULT true,
+            "templateText" VARCHAR(255) DEFAULT '{customerName} ({cityFrom}) az önce {productName} satın aldı.',
+            "maskName" BOOLEAN DEFAULT false,
+            "quietHoursEnabled" BOOLEAN DEFAULT false,
+            "quietHoursStart" VARCHAR(5) DEFAULT '22:00',
+            "quietHoursEnd" VARCHAR(5) DEFAULT '08:00',
+            "hideImage" BOOLEAN DEFAULT false,
+            "showVerification" BOOLEAN DEFAULT true,
             "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        // Eski mağazalar için kolonları ekle (hata verirse yoksay)
+        const alterCommands = [
+            `ALTER TABLE settings ADD COLUMN "templateText" VARCHAR(255) DEFAULT '{customerName} ({cityFrom}) az önce {productName} satın aldı.';`,
+            `ALTER TABLE settings ADD COLUMN "maskName" BOOLEAN DEFAULT false;`,
+            `ALTER TABLE settings ADD COLUMN "quietHoursEnabled" BOOLEAN DEFAULT false;`,
+            `ALTER TABLE settings ADD COLUMN "quietHoursStart" VARCHAR(5) DEFAULT '22:00';`,
+            `ALTER TABLE settings ADD COLUMN "quietHoursEnd" VARCHAR(5) DEFAULT '08:00';`,
+            `ALTER TABLE settings ADD COLUMN "hideImage" BOOLEAN DEFAULT false;`,
+            `ALTER TABLE settings ADD COLUMN "showVerification" BOOLEAN DEFAULT true;`
+        ];
+
+        for (let cmd of alterCommands) {
+            try { await pool.query(cmd); } catch (e) {}
+        }
 
         // Bildirimler Tablosu (Satış, Ziyaretçi vb.)
         await pool.query(`CREATE TABLE IF NOT EXISTS notifications (

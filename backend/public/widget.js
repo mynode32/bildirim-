@@ -59,6 +59,35 @@
                 color: #fff;
             }
 
+            .bidlirim-notification.bidlirim-luxury {
+                background: linear-gradient(145deg, #1a1a1a, #000000);
+                border: 1px solid #d4af37;
+                color: #fdf5e6;
+                border-radius: 4px;
+            }
+            .bidlirim-notification.bidlirim-luxury .bidlirim-title { color: #d4af37; font-family: 'Georgia', serif; font-style: italic; }
+            .bidlirim-notification.bidlirim-luxury .bidlirim-message { color: #fdf5e6; }
+            .bidlirim-notification.bidlirim-luxury .bidlirim-image-container { border-radius: 4px; border: 1px solid #d4af37; }
+
+            .bidlirim-notification.bidlirim-minimal {
+                background: #ffffff;
+                border: 1px solid #eee;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                border-radius: 8px;
+                padding: 12px 16px;
+            }
+            .bidlirim-notification.bidlirim-minimal .bidlirim-image-container { border-radius: 4px; border: none; width: 50px; height: 50px; }
+            .bidlirim-notification.bidlirim-minimal .bidlirim-progress { border-radius: 0 0 8px 8px; }
+
+            .bidlirim-notification.bidlirim-boutique {
+                background: #fffafa;
+                border: 1px solid #ffe4e1;
+                border-radius: 30px;
+                box-shadow: 0 10px 20px rgba(205, 92, 92, 0.1);
+            }
+            .bidlirim-notification.bidlirim-boutique .bidlirim-title { color: #cd5c5c; }
+
+
             .bidlirim-notification.bidlirim-show {
                 transform: translateY(0) scale(1);
                 opacity: 1;
@@ -197,14 +226,40 @@
         return container;
     }
 
+    function isQuietHour() {
+        if (!config || !config.settings || !config.settings.quietHoursEnabled) return false;
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const start = config.settings.quietHoursStart.split(':').map(Number); // [22, 0]
+        const end = config.settings.quietHoursEnd.split(':').map(Number); // [8, 0]
+        
+        const currentMins = currentHour * 60 + currentMinute;
+        const startMins = start[0] * 60 + start[1];
+        const endMins = end[0] * 60 + end[1];
+
+        if (startMins < endMins) {
+            return currentMins >= startMins && currentMins <= endMins;
+        } else {
+            // Gece yarısını geçiyorsa (örn 22:00 - 08:00)
+            return currentMins >= startMins || currentMins <= endMins;
+        }
+    }
+
     function showNotification(notification) {
-        if (!config || isDisplaying) return;
+        if (!config || isDisplaying || isQuietHour()) return;
         isDisplaying = true;
 
         const container = createContainer(config.settings.position);
         
+        let themeClass = '';
+        if (config.settings.theme === 'dark') themeClass = 'bidlirim-dark';
+        else if (config.settings.theme === 'luxury') themeClass = 'bidlirim-luxury';
+        else if (config.settings.theme === 'minimal') themeClass = 'bidlirim-minimal';
+        else if (config.settings.theme === 'boutique') themeClass = 'bidlirim-boutique';
+
         const el = document.createElement('div');
-        el.className = "bidlirim-notification " + (config.settings.theme === 'dark' ? 'bidlirim-dark' : '');
+        el.className = "bidlirim-notification " + themeClass;
         
         const times = ['Az önce', '1 dakika önce', '2 dakika önce', '5 dakika önce'];
         const randomTime = times[Math.floor(Math.random() * times.length)];
@@ -212,16 +267,32 @@
         // SVG Checkmark for verified
         const checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 
-        el.innerHTML = `
+        let imageHtml = '';
+        if (!config.settings.hideImage) {
+            imageHtml = `
             <div class="bidlirim-image-container">
                 <img src="${notification.imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=150&q=80&fit=crop'}" alt="Product">
-            </div>
+            </div>`;
+        }
+
+        let verifyHtml = '';
+        if (config.settings.showVerification !== false) {
+            verifyHtml = `<span class="bidlirim-verified">${checkIcon} Doğrulandı</span>`;
+        }
+
+        let messageHtml = '';
+        if (notification.message) {
+            messageHtml = `<div class="bidlirim-message">${notification.message}</div>`;
+        }
+
+        el.innerHTML = `
+            ${imageHtml}
             <div class="bidlirim-content">
                 <div class="bidlirim-title">${notification.title}</div>
-                <div class="bidlirim-message">${notification.message}</div>
+                ${messageHtml}
                 <div class="bidlirim-meta">
                     <span class="bidlirim-time">${randomTime}</span>
-                    <span class="bidlirim-verified">${checkIcon} Doğrulandı</span>
+                    ${verifyHtml}
                 </div>
             </div>
             <div class="bidlirim-close">✕</div>

@@ -70,14 +70,13 @@ function DashboardHome({ storeId }) {
         {settings ? (
           <form onSubmit={saveSettings} className="grid-2">
             <div className="form-group">
-              <label>Tema Rengi</label>
-              <select 
-                className="form-control" 
-                value={settings.theme} 
-                onChange={(e) => setSettings({...settings, theme: e.target.value})}
-              >
-                <option value="light">Aydınlık (Light)</option>
-                <option value="dark">Karanlık (Dark Premium)</option>
+              <label>Tema Tasarımı</label>
+              <select className="form-control" value={settings.theme} onChange={(e) => setSettings({...settings, theme: e.target.value})}>
+                <option value="light">Aydınlık (Klasik)</option>
+                <option value="dark">Karanlık Mod</option>
+                <option value="minimal">Minimal (Sade)</option>
+                <option value="boutique">Butik (Zarif)</option>
+                <option value="luxury">Lüks Siyah (Altın Detaylı)</option>
               </select>
             </div>
             
@@ -162,6 +161,77 @@ function DashboardHome({ storeId }) {
                 />
                 <label htmlFor="soundEnabled" style={{ margin: 0 }}>Bildirim Sesi Çal (Hafif ve zarif bir "pop" sesi çalar)</label>
               </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <input 
+                  type="checkbox" 
+                  id="maskName"
+                  checked={settings.maskName === 1 || settings.maskName === true} 
+                  onChange={(e) => setSettings({...settings, maskName: e.target.checked})} 
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <label htmlFor="maskName" style={{ margin: 0 }}>Müşteri Adını Maskele (Örn: Ahmet yerine A*** gösterir)</label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <input 
+                  type="checkbox" 
+                  id="hideImage"
+                  checked={settings.hideImage === 1 || settings.hideImage === true} 
+                  onChange={(e) => setSettings({...settings, hideImage: e.target.checked})} 
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <label htmlFor="hideImage" style={{ margin: 0 }}>Ürün Görselini Gizle (Sadece metin olarak gösterir)</label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <input 
+                  type="checkbox" 
+                  id="showVerification"
+                  checked={settings.showVerification !== false && settings.showVerification !== 0} 
+                  onChange={(e) => setSettings({...settings, showVerification: e.target.checked})} 
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <label htmlFor="showVerification" style={{ margin: 0 }}>Mavi Doğrulama Tiki Göster (Güven artırıcı)</label>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label>Bildirim Metni Şablonu</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={settings.templateText || ''} 
+                  onChange={(e) => setSettings({...settings, templateText: e.target.value})} 
+                  placeholder="{customerName} ({cityFrom}) az önce {productName} satın aldı."
+                />
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  Değişkenler: {'{customerName}'}, {'{cityFrom}'}, {'{productName}'}, {'{timeText}'}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <input 
+                  type="checkbox" 
+                  id="quietHoursEnabled"
+                  checked={settings.quietHoursEnabled === 1 || settings.quietHoursEnabled === true} 
+                  onChange={(e) => setSettings({...settings, quietHoursEnabled: e.target.checked})} 
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <label htmlFor="quietHoursEnabled" style={{ margin: 0 }}>Sessiz Saatleri Etkinleştir (Bu saatlerde bildirim çıkmaz)</label>
+              </div>
+
+              {settings.quietHoursEnabled && (
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label>Başlangıç Saati</label>
+                    <input type="time" className="form-control" value={settings.quietHoursStart || '22:00'} onChange={(e) => setSettings({...settings, quietHoursStart: e.target.value})} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label>Bitiş Saati</label>
+                    <input type="time" className="form-control" value={settings.quietHoursEnd || '08:00'} onChange={(e) => setSettings({...settings, quietHoursEnd: e.target.value})} />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label>Hariç Tutulacak Sayfalar (Bu kelimeleri içeren URL'lerde bildirim çıkmaz)</label>
