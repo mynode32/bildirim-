@@ -7,8 +7,23 @@ import { Copy, CheckCircle } from 'lucide-react';
 function Installation({ storeId }) {
   const STORE_ID = storeId;
   const WIDGET_URL = `${API_URL}/widget.js`;
-  const embedCode = `<script src="${WIDGET_URL}" data-store="${STORE_ID}" async></script>`;
+  const embedCode = `<!-- Bidlirim Widget ve Otomatik Radar Sistemi -->
+<script src="${WIDGET_URL}" data-store="${STORE_ID}" async></script>
+<script>
+  // Sepete Ekleme ve Satın Alma Radarı
+  window.addEventListener('click', function(e) {
+    if (e.target && (e.target.innerText.includes('Sepete Ekle') || e.target.closest('button')?.innerText.includes('Sepete Ekle'))) {
+       let pName = document.querySelector('h1')?.innerText || 'Harika Bir Ürün';
+       if (window.Bidlirim) window.Bidlirim.track('cart', { productName: pName });
+    }
+  });
 
+  window.addEventListener('load', function() {
+    if (window.location.href.includes('success') || window.location.href.includes('thank-you') || window.location.href.includes('basarili')) {
+       if (window.Bidlirim) window.Bidlirim.track('purchase', { productName: 'Harika Bir Ürün' });
+    }
+  });
+</script>`;
   const [copied, setCopied] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
 
