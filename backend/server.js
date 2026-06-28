@@ -316,10 +316,10 @@ app.post('/api/widget/event/:storeId', async (req, res) => {
 
         const result = await db.query(
             `INSERT INTO notifications ("storeId", type, title, message, "imageUrl", "productUrl", "isActive") VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id`,
-            [storeId, type, title, message, finalImg, productUrl || '']
+            [storeId, event, title, message, finalImg, productUrl || '']
         );
         
-        const newNotif = { id: result.rows[0].id, storeId, type, title, message, imageUrl: finalImg, productUrl };
+        const newNotif = { id: result.rows[0].id, storeId, type: event, title, message, imageUrl: finalImg, productUrl };
         io.to(storeId).emit('new_notification', newNotif);
         
         res.json({ success: true, notificationId: result.rows[0].id });
