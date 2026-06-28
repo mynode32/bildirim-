@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const JWT_SECRET = process.env.JWT_SECRET || 'bidlirim_super_secret_key_2026';
 
-app.use(cors({ origin: FRONTEND_URL }));
+app.use(cors());
 app.use(express.json());
 
 // Get real IP if behind proxy
