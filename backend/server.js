@@ -28,32 +28,33 @@ app.set('trust proxy', true);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // === AUTH API ===
-app.post('/api/auth/register', async (req, res) => {
-    const { email, password } = req.body;
-    if(!email || !password) return res.status(400).json({ error: "Email ve şifre zorunludur." });
-
-    const storeId = 'store-' + Math.random().toString(36).substr(2, 9);
+app.post('/api/auth/magic', async (req, res) => {
+    let { storeId } = req.body;
+    if (!storeId) return res.status(400).json({ error: "Mağaza Adı zorunludur." });
     
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        
-        // Varsayılan ayarları oluştur (foreign key olduğu için önce bu)
-        await db.query(`INSERT INTO settings ("storeId") VALUES ($1)`, [storeId]);
-        
-        // Postgres: Use RETURNING id
-        const result = await db.query(
-            `INSERT INTO users (email, password, "storeId") VALUES ($1, $2, $3) RETURNING id`,
-            [email, hashedPassword, storeId]
-        );
-        const userId = result.rows[0].id;
-        
-        const token = jwt.sign({ userId, storeId, email }, JWT_SECRET, { expiresIn: '7d' });
-        res.json({ token, storeId, email });
+    // Temizle (boşlukları sil, küçük harf yap)
+    storeId = storeId.trim().toLowerCase();
+    const email = `${storeId}@demo.com`;
 
-    } catch(e) {
-        if (e.code === '23505') { // Postgres unique constraint error code
-            return res.status(400).json({ error: "Bu email zaten kayıtlı." });
+    try {
+        // Mağaza varsa token dön, yoksa oluştur
+        let userResult = await db.query(`SELECT * FROM users WHERE "storeId" = $1`, [storeId]);
+        
+        if (userResult.rows.length === 0) {
+            // İlk kez giriyor, oluştur
+            await db.query(`INSERT INTO settings ("storeId") VALUES ($1)`, [storeId]);
+            const tempPassword = await bcrypt.hash(storeId, 10);
+            userResult = await db.query(
+                `INSERT INTO users (email, password, "storeId") VALUES ($1, $2, $3) RETURNING id, "storeId"`,
+                [email, tempPassword, storeId]
+            );
         }
+
+        const user = userResult.rows[0];
+        const token = jwt.sign({ userId: user.id, storeId: user.storeId, email }, JWT_SECRET, { expiresIn: '30d' });
+        
+        res.json({ token, storeId: user.storeId, email });
+    } catch(e) {
         res.status(500).json({ error: e.message });
     }
 });
