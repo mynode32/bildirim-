@@ -356,7 +356,7 @@ app.get('/api/oauth/install', (req, res) => {
     if (!shop) return res.status(400).send("Mağaza bilgisi eksik.");
     
     // Yönlendirme adresi (Callback)
-    const redirectUri = `${FRONTEND_URL.replace('http://localhost:5173', 'https://bildirim-c2rk.onrender.com')}/api/oauth/callback`;
+    const redirectUri = 'https://bildirim-c2rk.onrender.com/api/oauth/callback';
     
     // İkas OAuth yetkilendirme ekranına yönlendir
     const authUrl = `https://${shop}.myikas.com/admin/oauth/authorize?client_id=${IKAS_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
