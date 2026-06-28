@@ -355,7 +355,8 @@ app.get('/api/oauth/install', (req, res) => {
 });
 
 app.get('/api/oauth/callback', async (req, res) => {
-    const { shop, code } = req.query;
+    const code = req.query.code;
+    const shop = req.query.shop || req.query.storeName || req.query.store_id;
     if (!shop || !code) return res.status(400).send("Geçersiz OAuth dönüşü.");
 
     const storeId = 'store-' + Math.random().toString(36).substr(2, 9);
