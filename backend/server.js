@@ -348,10 +348,20 @@ app.post('/api/widget/event/:storeId', async (req, res) => {
 });
 
 // === OAUTH / APP STORE KURULUM API'LERİ (FAZ 5) ===
+const IKAS_CLIENT_ID = process.env.IKAS_CLIENT_ID || 'eb1ca311-317e-4cc4-8cf3-c09cbcb712e0';
+const IKAS_CLIENT_SECRET = process.env.IKAS_CLIENT_SECRET || 's_3miuDnV79JGAkWjUIXDQXExiee80a5753be74d919d11e2bc72f21716';
+
 app.get('/api/oauth/install', (req, res) => {
-    const shop = req.query.shop || req.query.store_id;
+    const shop = req.query.shop || req.query.store_id || req.query.storeName;
     if (!shop) return res.status(400).send("Mağaza bilgisi eksik.");
-    res.send(`OAuth Adım 1: ${shop} mağazasından yetki isteniyor... (Gerçek API anahtarlarıyla yönlendirme yapılacak)`);
+    
+    // Yönlendirme adresi (Callback)
+    const redirectUri = `${FRONTEND_URL.replace('http://localhost:5173', 'https://bildirim-c2rk.onrender.com')}/api/oauth/callback`;
+    
+    // İkas OAuth yetkilendirme ekranına yönlendir
+    const authUrl = `https://${shop}.myikas.com/admin/oauth/authorize?client_id=${IKAS_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code`;
+    
+    res.redirect(authUrl);
 });
 
 app.get('/api/oauth/callback', async (req, res) => {
@@ -359,26 +369,25 @@ app.get('/api/oauth/callback', async (req, res) => {
     const shop = req.query.shop || req.query.storeName || req.query.store_id;
     if (!shop || !code) return res.status(400).send("Geçersiz OAuth dönüşü.");
 
-    const storeId = 'store-' + Math.random().toString(36).substr(2, 9);
+    // Gerçek bir sistemde burada "code" kullanılarak "access_token" alınır.
+    // Şimdilik İkas mağazasını sistemimize kaydedip paneline şifresiz sokuyoruz.
+    
+    const storeId = shop; // İkas mağaza adını doğrudan storeId olarak kullan
     const email = `${shop}@merchant.com`;
     const tempPassword = await bcrypt.hash(storeId, 10);
 
     try {
-        // Insert settings first due to foreign key constraint
-        await db.query(`INSERT INTO settings ("storeId") VALUES ($1)`, [storeId]);
-        const result = await db.query(`INSERT INTO users (email, password, "storeId") VALUES ($1, $2, $3) RETURNING id`, [email, tempPassword, storeId]);
+        await db.query(`INSERT INTO settings ("storeId") VALUES ($1) ON CONFLICT DO NOTHING`, [storeId]);
+        await db.query(`INSERT INTO users (email, password, "storeId") VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, [email, tempPassword, storeId]);
         
-        const token = jwt.sign({ userId: result.rows[0].id, storeId, email }, JWT_SECRET, { expiresIn: '7d' });
+        const userRes = await db.query(`SELECT id FROM users WHERE email = $1`, [email]);
+        const userId = userRes.rows[0].id;
+        
+        const token = jwt.sign({ userId, storeId, email }, JWT_SECRET, { expiresIn: '7d' });
+        
+        // Frontend dashboard'una şifresiz giriş linkiyle yönlendir
         res.redirect(`${FRONTEND_URL}/?token=${token}&storeId=${storeId}&email=${email}`);
     } catch (e) {
-        if (e.code === '23505') { // Postgres unique constraint error code (already installed)
-             const existingUser = await db.query(`SELECT * FROM users WHERE email = $1`, [email]);
-             if(existingUser.rows.length > 0) {
-                 const user = existingUser.rows[0];
-                 const token = jwt.sign({ userId: user.id, storeId: user.storeId, email }, JWT_SECRET, { expiresIn: '7d' });
-                 return res.redirect(`${FRONTEND_URL}/?token=${token}&storeId=${user.storeId}&email=${email}`);
-             }
-        }
         res.status(500).send(e.message);
     }
 });
