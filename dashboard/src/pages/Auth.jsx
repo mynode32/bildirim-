@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -7,8 +7,7 @@ function Auth({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const performLogin = async (idToLogin) => {
     setError('');
     setLoading(true);
 
@@ -16,7 +15,7 @@ function Auth({ onLogin }) {
       const res = await fetch(`${API_URL}/api/auth/magic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storeId })
+        body: JSON.stringify({ storeId: idToLogin })
       });
       
       const data = await res.json();
@@ -34,6 +33,21 @@ function Auth({ onLogin }) {
       setError(err.message);
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shop = urlParams.get('shop') || urlParams.get('storeId') || urlParams.get('store_id');
+    
+    if (shop) {
+      setStoreId(shop);
+      performLogin(shop);
+    }
+  }, []);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    performLogin(storeId);
   };
 
   return (
