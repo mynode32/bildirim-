@@ -207,6 +207,25 @@ app.get('/api/widget/track/click/:id', async (req, res) => {
     }
 });
 
+// === İSTATİSTİK API'Sİ ===
+app.get('/api/stats/:storeId', async (req, res) => {
+    const { storeId } = req.params;
+    try {
+        const result = await db.query(`
+            SELECT 
+                COUNT(*) as total_notifications,
+                COALESCE(SUM(views), 0) as total_views,
+                COALESCE(SUM(clicks), 0) as total_clicks
+            FROM notifications 
+            WHERE "storeId" = $1
+        `, [storeId]);
+        
+        res.json(result.rows[0]);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // === OTOMASYON (WEBHOOK & EVENT) API'LERİ ===
 
 app.post('/api/webhooks/order/:storeId', async (req, res) => {
@@ -373,4 +392,15 @@ io.on('connection', (socket) => {
 
 server.listen(PORT, () => {
     console.log(`Bidlirim API ${PORT} portunda çalışıyor. Socket.io aktif.`);
+    
+    // === ÇÖPÇÜ ROBOT (CRON JOB) ===
+    // Her 24 saatte bir çalışır ve 30 günden eski bildirimleri siler
+    setInterval(async () => {
+        try {
+            const result = await db.query(`DELETE FROM notifications WHERE "createdAt" < NOW() - INTERVAL '30 days'`);
+            console.log(`Çöpçü Robot: 30 günden eski ${result.rowCount} adet bildirim temizlendi.`);
+        } catch (e) {
+            console.error('Çöpçü Robot Hatası:', e.message);
+        }
+    }, 24 * 60 * 60 * 1000);
 });

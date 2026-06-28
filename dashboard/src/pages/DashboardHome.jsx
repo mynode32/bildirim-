@@ -16,16 +16,17 @@ function DashboardHome({ storeId }) {
       })
       .catch(err => console.error("Ayarlar çekilemedi:", err));
 
-    fetch(`${API_URL}/api/notifications/${STORE_ID}`)
+    fetch(`${API_URL}/api/stats/${STORE_ID}`)
       .then(res => res.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
         setStats({
-          totalNotifs: data.length,
-          activeNotifs: data.filter(n => n.isActive).length
+          totalNotifs: data.total_notifications || 0,
+          totalViews: data.total_views || 0,
+          totalClicks: data.total_clicks || 0
         });
       })
-      .catch(err => console.error("Bildirimler çekilemedi:", err));
+      .catch(err => console.error("İstatistikler çekilemedi:", err));
   }, []);
 
   const saveSettings = (e) => {
@@ -50,16 +51,16 @@ function DashboardHome({ storeId }) {
 
       <div className="grid-3">
         <div className="stat-card">
-          <div className="stat-value">{stats.activeNotifs}</div>
-          <div className="stat-label">Aktif Bildirimler</div>
-        </div>
-        <div className="stat-card">
           <div className="stat-value">{stats.totalNotifs}</div>
-          <div className="stat-label">Toplam Bildirim</div>
+          <div className="stat-label">Tetiklenen Bildirimler</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">Aktif</div>
-          <div className="stat-label">Widget Durumu</div>
+          <div className="stat-value" style={{ color: '#8a2be2' }}>{stats.totalViews}</div>
+          <div className="stat-label">Gerçek Gösterim Sayısı</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: '#10b981' }}>{stats.totalClicks}</div>
+          <div className="stat-label">Ürüne Tıklanma / Yönlendirme</div>
         </div>
       </div>
 
